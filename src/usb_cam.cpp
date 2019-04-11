@@ -445,7 +445,29 @@ void UsbCam::mjpeg2rgb(char *MJPEG, int len, char *RGB, int NumPixels)
     return;
   }
 
-  video_sws_ = sws_getContext(xsize, ysize, avcodec_context_->pix_fmt, xsize, ysize, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL,
+  // workaround for deprecated formats
+  // see https://stackoverflow.com/questions/23067722/swscaler-warning-deprecated-pixel-format-used/23216860
+  AVPixelFormat pix_fmt;
+  switch (avcodec_context_->pix_fmt)
+  {
+    case AV_PIX_FMT_YUVJ420P:
+        pix_fmt = AV_PIX_FMT_YUV420P;
+        break;
+    case AV_PIX_FMT_YUVJ422P:
+        pix_fmt = AV_PIX_FMT_YUV422P;
+        break;
+    case AV_PIX_FMT_YUVJ444P:
+        pix_fmt = AV_PIX_FMT_YUV444P;
+        break;
+    case AV_PIX_FMT_YUVJ440P:
+        pix_fmt = AV_PIX_FMT_YUV440P;
+        break;
+    default:
+        pix_fmt = avcodec_context_->pix_fmt;
+        break;
+  }
+
+  video_sws_ = sws_getContext(xsize, ysize, pix_fmt, xsize, ysize, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL,
 			      NULL,  NULL);
   sws_scale(video_sws_, avframe_camera_->data, avframe_camera_->linesize, 0, ysize, avframe_rgb_->data,
             avframe_rgb_->linesize);
